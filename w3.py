@@ -5,6 +5,18 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.impute import SimpleImputer
 
+
+def print_result(y, pred_, cost):
+	fig, ax = plt.subplots(ncols=2, figsize=(10, 4))
+	sns.scatterplot(range(len(y)), y, color='red', ax=ax[0])
+	sns.scatterplot(range(len(pred_)), pred_, ax=ax[0])
+	sns.lineplot(range(len(cost)), cost, ax=ax[1])
+	ax[0].legend(['Actual Data ', 'Prediction '])
+	plt.show()
+
+
+
+
 # # f - house prices
 # f = x1*w1 + x2*w2 + x3*w3 + x4*w4 + epsilon
 # # where x1 - floor number, x2 - square meter, x3 - the district with 5 distinct values just for the example afterwards let it be the distance from the center, x4 - old/new
@@ -67,12 +79,11 @@ print(new_weights,'\n', weights)
 
 # specify the loss function - rmse
 # ------------ your code goes here
-cols = ['full_sq','life_sq','floor', 'big_church_count_5000',  'church_count_5000', 
-		'leisure_count_5000',  'sport_count_5000',  'market_count_500', 'price_doc']
+cols = ['full_sq', 'life_sq', 'floor', 'big_church_count_5000', 'church_count_5000',
+		'leisure_count_5000', 'sport_count_5000', 'market_count_500', 'price_doc']
 
 path = 'C:\\Users\\user\\applied statistics and data scince\\ML\\data\\Sber_b_house\\train.csv'
 df = pd.read_csv(path, usecols=cols, nrows=1000)
- 
 
 imputer = SimpleImputer(missing_values=np.nan,strategy='mean')
 df = pd.DataFrame(imputer.fit_transform(df), columns = cols)
@@ -90,7 +101,7 @@ m = size
 stop_ = 1e+3
 
 cost = []
-def weights_finding(X, y, eta, n_epochs, m, stop_, cost):
+def gradient_descent(X, y, eta, n_epochs, m, stop_, cost):
 
 	initial_weights = np.zeros(X.shape[1]) - 200
 	print(initial_weights)
@@ -104,47 +115,82 @@ def weights_finding(X, y, eta, n_epochs, m, stop_, cost):
 		cost.append(loss)
 		
 		if loss < stop_:
-
 			exit()
 			return 	initial_weights, cost, epoch
 			
 	return 	initial_weights, cost, epoch
 
-initial_weights_, cost, epoch = weights_finding(X, y, eta, n_epochs, m, stop_, cost)
+initial_weights_, cost, epoch = gradient_descent(X, y, eta, n_epochs, m, stop_, cost)
 
 print("Here is the output of the gradients\n ",initial_weights_) 
 print('Iteration was stoped at :', epoch)
 
-fig, ax = plt.subplots(ncols = 2, figsize = (10,4))
+
 pred_ = X.dot(initial_weights_)
 
 
 print("Accuracy is :",r2_score(y, pred_))
 
-sns.scatterplot(range(len(y)),y,color = 'red',ax = ax[0])
-sns.scatterplot(range(len(pred_)),pred_,  ax = ax[0])
-sns.lineplot(range(len(cost)),cost, ax = ax[1])
-ax[0].legend(['Actual Data ', 'Prediction '])
-plt.show()
- 
-# beta = [alpha, beta_1, beta_2, beta_3, beta_4]
-# x_i = [1, x_i1, , x_i2, x_i3, x_i4] 
-
-# def predict(x_i, beta):
-# 	return np.dot(x_i, beta)
+print_result(y, pred_,cost)
 
 
-# def error(x_i, y_i, beta):
-# 	return y_i - predict(x_i, beta)
+#////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#Stochastick Gradient Descent
+path = 'C:\\Users\\user\\applied statistics and data scince\\ML\\data\\Sber_b_house\\train.csv'
+df = pd.read_csv(path, usecols=cols, nrows=1000)
+
+imputer = SimpleImputer(missing_values=np.nan,strategy='mean')
+df = pd.DataFrame(imputer.fit_transform(df), columns = cols)
 
 
-# def squared_erroe(x_i, y_i, beta):
-# 	return error(x_i, y_i, beta) ** 2
-
-# def estimate_beta(X, y):
-# 	initial_beta = np.random.uniform(low = 0, high = 4, size = 5)
+y = df.pop('price_doc')
+X = df.copy()
 
 
+n_epochs = 100
+t0, t1 = 5, 5000000000
+
+
+
+def learning_schedule(t):
+	return t0/(t + t1)
+def mse(x,y, theta):
+	xw = x.dot(theta)
+	return np.sqrt(((xw - y)**2).sum() / (2*len(y)))
+
+
+
+def stochastic_gradient_descent(X, y, n_epochs):
+	theta = np.random.randn(X.shape[1])
+
+	loss = []
+	m = 200
+	eta = 0.00000000001
+	for epoch in range(n_epochs):
+		for i in range(m):
+			random_index = np.random.randint(m)
+			xi = X[random_index:random_index+1]
+			yi = y[random_index:random_index+1]
+			gradients = 2 * xi.T.dot(xi.dot(theta) - yi)
+
+			eta = learning_schedule(epoch * m + i)
+			theta = theta - eta * gradients
+
+		cost = mse(X, y, theta)
+		loss.append(cost)
+		print("Epoch--", epoch, 'ETA--', eta, 'RMSE', cost)
+
+	return theta, loss
+
+new_theta, loss = stochastic_gradient_descent(X, y, n_epochs)
+pred__ = X.dot(initial_weights_)
+
+
+print("Accuracy is :",r2_score(y, pred__))
+
+print_result(y, pred__, loss)
 
 
 # end of the code ------------
